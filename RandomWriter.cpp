@@ -22,6 +22,7 @@ using namespace std;
 
 Map<string, Vector<char> > seeds;
 Map<string, Map<char, int> > final;
+Map<string, Map<char, double> > ultimate;
 string filename;
 
 string promptUserForFile(ifstream & infile, string prompt="");
@@ -30,13 +31,19 @@ void printMap();
 int readFile(ifstream & infile);
 void makeModel(ifstream & infile,int n,int size);
 void updateMap();
+string mostFrequentSeed();
+void outputFile(ofstream & outfile,string seed,int limit);
+char nextChar(string s);
 
 int main() {
     ifstream infile;
+    ofstream outfile("output.txt");
+    
 	while (promptUserForFile(infile,"Please enter a valid text file name: ")!="success");
     int n=getInteger("And, the Markov model# to be used: ");
+    int l=getInteger("How, many characters approximately do you want to generate? ");
     int size=readFile(infile);
-    cout<<"*************************"<<size<<"\n";
+    //cout<<"*************************"<<size<<"\n";
     
     promptUserForFile(infile);
     //sleep(10);
@@ -44,8 +51,15 @@ int main() {
     makeModel(infile, n, size);
     updateMap();
     
-    printMap();
-    printVector(seeds["Sawye"]);
+    //printMap();
+    //cout<<"\nMost frequently used "<<n<<" letter sequence in "<<filename<<" is "<<"\""<<mostFrequentSeed()<<"\""<<endl;
+    //printVector(seeds["Sawye"]);
+    string seed=mostFrequentSeed();
+    for (int i=0; i<seed.size(); i++) {
+        outfile.put(seed[i]);
+    }
+    outputFile(outfile,seed,l);
+    cout<<"Your output is ready in output.txt\n";
 	return 0;
 }
 
@@ -91,7 +105,7 @@ int readFile(ifstream & infile){
     char ch;
     int n=0;
     while (infile.get(ch)) {
-        cout<<ch;
+        //cout<<ch;
         n++;
     }
     infile.close();
@@ -141,3 +155,53 @@ void updateMap(){
         i=0;
     }
 }
+
+string mostFrequentSeed(){
+    int count=0,max=0;
+    string res;
+    foreach(string s in final){
+        count=0;
+        foreach(char i in final[s]){
+            count+=final[s][i];
+        } 
+        foreach(char i in final[s]){
+            ultimate[s][i]=double(final[s][i])/double(count);
+        }
+        if (count>=max) {
+            max=count;
+            res=s;
+        }
+        //cout<<s<<" appeared "<<count<<" times\n";
+    }
+/*cout<<max<<endl;
+    cout<<"[ ";
+    foreach(char c in ultimate[res]){
+        cout<<"( "<<c<<" --> "<<ultimate[res][c]<<" )";
+    }
+    cout<<" ]\n";*/
+    return res;
+}
+
+void outputFile(ofstream & outfile,string seed,int limit){
+    static int count=0;
+    //cout<<seed<<endl;
+    char ch=nextChar(seed);
+    //cout<<ch<<endl;
+    while (count++<limit) {
+        count++;
+        
+        outfile.put(ch);
+        seed+=ch;
+        
+        outputFile(outfile, seed.substr(1),limit);
+    }
+    return;
+}
+
+char nextChar(string s){
+    int n=randomInteger(0, seeds[s].size()-1);
+    return seeds[s][n];
+}
+
+
+
