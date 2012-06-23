@@ -21,8 +21,33 @@
 using namespace std;
 
 Map<string, Vector<char> > seeds;
+Map<string, Map<char, int> > final;
 string filename;
+
+string promptUserForFile(ifstream & infile, string prompt="");
 void printVector(Vector<char> s);
+void printMap();
+int readFile(ifstream & infile);
+void makeModel(ifstream & infile,int n,int size);
+void updateMap();
+
+int main() {
+    ifstream infile;
+	while (promptUserForFile(infile,"Please enter a valid text file name: ")!="success");
+    int n=getInteger("And, the Markov model# to be used: ");
+    int size=readFile(infile);
+    cout<<"*************************"<<size<<"\n";
+    
+    promptUserForFile(infile);
+    //sleep(10);
+    //readFile(infile);
+    makeModel(infile, n, size);
+    updateMap();
+    
+    printMap();
+    printVector(seeds["Sawye"]);
+	return 0;
+}
 
 void printVector(Vector<char> s){
     cout<<"[";
@@ -33,19 +58,23 @@ void printVector(Vector<char> s){
 }
 
 void printMap(){
-    foreach(string s in seeds){
-        cout<<s<<"-->";
-        printVector(seeds[s]);
+    foreach(string s in final){
+        cout<<s<<"-->   [    ";
+        foreach(char i in final[s]){
+            cout<<"( "<<final[s][i]<<"--"<<i<<" )";
+            cout<<"   ";
+        }
+        cout<<"   ]"<<endl;
     }
     return;
 }
 
-string promptUserForFile(ifstream & infile, string prompt=""){
+string promptUserForFile(ifstream & infile, string prompt){
     if (prompt=="") {
         infile.open(filename.c_str());
         if (infile.is_open()) {
             return "success";
-
+            
         }
         return "xyz";
     }
@@ -98,20 +127,17 @@ void makeModel(ifstream & infile,int n,int size){
     return;
 }
 
-
-
-int main() {
-    ifstream infile;
-	while (promptUserForFile(infile,"Please enter a valid text file name: ")!="success");
-    int n=getInteger("And, the Markov model# to be used: ");
-    int size=readFile(infile);
-    cout<<"*************************"<<size<<"\n";
+void updateMap(){
+    foreach(string s in seeds){
+        final[s].put(' ',0);
+    }
     
-    promptUserForFile(infile);
-    //sleep(10);
-    //readFile(infile);
-    makeModel(infile, n, size);
-    printMap();
-    printVector(seeds["Sawye"]);
-	return 0;
+    int i=0;
+    
+    foreach(string s in seeds){
+        foreach(char c in seeds[s]){
+            final[s][c]++;
+        }
+        i=0;
+    }
 }
