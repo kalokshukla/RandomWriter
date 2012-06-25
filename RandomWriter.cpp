@@ -1,11 +1,14 @@
 /*
  * File: RandomWriter.cpp
  * ----------------------
- * Name: [TODO: enter name here]
- * Section: [TODO: enter section leader here]
- * This file is the starter project for the random writer problem
- * on Assignment #2.
- * [TODO: extend the documentation]
+ * Copyright 2012 Alok K Shukla
+ * MNNIT Allahabad
+ *
+ * RandomWriter : Writes some "random" text in an output file, 
+ *                that resembles the input file text.
+ * The degree of resemblane depends upon the seed size used for Markov model.
+ * Bigger the seed, better the resemblance.
+ *
  */
 
 #include <fstream>
@@ -20,78 +23,78 @@
 
 using namespace std;
 
+/*
+ * The datastructure that keeps all possible seeds of provided size
+ * and lists of all charcters that follow them.
+ */
 Map<string, Vector<char> > seeds;
-Map<string, Map<char, int> > final;
-Map<string, Map<char, double> > ultimate;
-string filename;
 
-string promptUserForFile(ifstream & infile, string prompt="");
-void printVector(Vector<char> s);
-void printMap();
-int readFile(ifstream & infile);
+// Input filename, shared between multiple functions.
+ string filename;
+
+// Opens the file and get it ready for reading from the beginning.
+string getFileReady(ifstream & infile, string prompt="");
+
+// Calculates the file-size
+int fileSize(ifstream & infile);
+
+// Fills up the 'seeds' data structure 
 void makeModel(ifstream & infile,int n,int size);
-void updateMap();
+
+/*
+ * Returns the most frequently used seed in the input file.
+ * Its the character sequence thats written first in output file, to start with.
+ */
 string mostFrequentSeed();
-void outputFile(ofstream & outfile,string seed,int limit);
+
+/*
+ * Returns a charcter selected from a string,
+ * based on frequency distribution of charcter in the string.
+ */
 char nextChar(string s);
+
+// Writes in the output file.
+void outputFile(ofstream & outfile,string seed,int limit);
 
 int main() {
     ifstream infile;
-    ofstream outfile("output.txt");
     
-	while (promptUserForFile(infile,"Please enter a valid text file name: ")!="success");
-    int n=getInteger("And, the Markov model# to be used: ");
-    int l=getInteger("How, many characters approximately do you want to generate? ");
-    int size=readFile(infile);
-    //cout<<"*************************"<<size<<"\n";
+    // Get some working filename.
+	while (getFileReady(infile,"Please enter a valid text file name: ")!="success");
     
-    promptUserForFile(infile);
-    //sleep(10);
-    //readFile(infile);
+    int n=getInteger("And, the Markov model# to be used(<=10): ");
+    int l=getInteger("How, number of characters to be generated (<=10000): ");
+    
+    int size=fileSize(infile);
+    getFileReady(infile);
     makeModel(infile, n, size);
-    updateMap();
     
-    //printMap();
-    //cout<<"\nMost frequently used "<<n<<" letter sequence in "<<filename<<" is "<<"\""<<mostFrequentSeed()<<"\""<<endl;
-    //printVector(seeds["Sawye"]);
+    string outfilename = filename.substr(0,filename.find('.'))+"_extended.txt";
+    ofstream outfile(outfilename.c_str());
+    
+    // Writes the most frequent used word in file to the output file to start with.
     string seed=mostFrequentSeed();
     for (int i=0; i<seed.size(); i++) {
         outfile.put(seed[i]);
     }
+    
+    
+    cout<<"Your output is ready in "<<outfilename<<".\n"<<"And, it looks like following.\n";
+    sleep(2);
     outputFile(outfile,seed,l);
-    cout<<"Your output is ready in output.txt\n";
 	return 0;
 }
 
-void printVector(Vector<char> s){
-    cout<<"[";
-    foreach(char v in s){
-        cout<<" "<<v<<" ";
-    }
-    cout<<"]"<<endl;
-}
-
-void printMap(){
-    foreach(string s in final){
-        cout<<s<<"-->   [    ";
-        foreach(char i in final[s]){
-            cout<<"( "<<final[s][i]<<"--"<<i<<" )";
-            cout<<"   ";
-        }
-        cout<<"   ]"<<endl;
-    }
-    return;
-}
-
-string promptUserForFile(ifstream & infile, string prompt){
+string getFileReady(ifstream & infile, string prompt){
     if (prompt=="") {
         infile.open(filename.c_str());
         if (infile.is_open()) {
             return "success";
             
         }
-        return "xyz";
+        return "failure";
     }
+    
     filename=getLine(prompt);
     infile.open(filename.c_str());
     if (!infile.is_open()) {
@@ -101,29 +104,31 @@ string promptUserForFile(ifstream & infile, string prompt){
     return "success";
 }
 
-int readFile(ifstream & infile){
+int fileSize(ifstream & infile){
     char ch;
     int n=0;
     while (infile.get(ch)) {
-        //cout<<ch;
         n++;
     }
     infile.close();
     return n;
 }
 
+
+/*
+ * Reads file charcter by charcter and 
+ * prepare the seeds data structure.
+ *
+ */
 void makeModel(ifstream & infile,int n,int size){
     char ch;
     string s,prev="";
     int temp=n;
     temp++;
     while (size-->0) {
-        //cout<<"I should be \n";
         if (prev=="") {
             while (temp-->0) {
-                //cout<<"why am i not here?";
                 infile.get(ch);
-                //cout<<ch;
                 s+=ch;
             }        
         }
@@ -132,7 +137,6 @@ void makeModel(ifstream & infile,int n,int size){
             infile.get(ch);
             s+=ch;
         }
-        //cout<<s<<" ";
         prev=s.substr(1);
         seeds[s.substr(0,n)].add(s[n]);
         temp=n;
@@ -141,56 +145,39 @@ void makeModel(ifstream & infile,int n,int size){
     return;
 }
 
-void updateMap(){
-    foreach(string s in seeds){
-        final[s].put(' ',0);
-    }
-    
-    int i=0;
-    
-    foreach(string s in seeds){
-        foreach(char c in seeds[s]){
-            final[s][c]++;
-        }
-        i=0;
-    }
-}
-
 string mostFrequentSeed(){
-    int count=0,max=0;
+    int max=0;
     string res;
-    foreach(string s in final){
-        count=0;
-        foreach(char i in final[s]){
-            count+=final[s][i];
-        } 
-        foreach(char i in final[s]){
-            ultimate[s][i]=double(final[s][i])/double(count);
-        }
-        if (count>=max) {
-            max=count;
+    foreach(string s in seeds){
+        if (seeds[s].size()>=max) {
+            max=seeds[s].size();
             res=s;
         }
-        //cout<<s<<" appeared "<<count<<" times\n";
     }
-/*cout<<max<<endl;
-    cout<<"[ ";
-    foreach(char c in ultimate[res]){
-        cout<<"( "<<c<<" --> "<<ultimate[res][c]<<" )";
-    }
-    cout<<" ]\n";*/
+
     return res;
 }
 
+char nextChar(string s){
+    int n=randomInteger(0, seeds[s].size()-1);
+    return seeds[s][n];
+}
+
+/*
+ * After first seed is written to file,
+ * writes the next character that follows the seed, 
+ * and is randomly chosen from a set of charcters that follow the seed in the input file.
+ * now the seed is updated to choose next charcter to be written in file.
+ *
+ */
+
 void outputFile(ofstream & outfile,string seed,int limit){
     static int count=0;
-    //cout<<seed<<endl;
     char ch=nextChar(seed);
-    //cout<<ch<<endl;
     while (count++<limit) {
         count++;
-        
         outfile.put(ch);
+        cout<<ch;
         seed+=ch;
         
         outputFile(outfile, seed.substr(1),limit);
@@ -198,10 +185,6 @@ void outputFile(ofstream & outfile,string seed,int limit){
     return;
 }
 
-char nextChar(string s){
-    int n=randomInteger(0, seeds[s].size()-1);
-    return seeds[s][n];
-}
 
 
 
